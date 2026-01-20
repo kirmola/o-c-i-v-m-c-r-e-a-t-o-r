@@ -1,0 +1,65 @@
+name: OCI A1 Flex Persistent Creator (5s retry, SSH enabled)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  create:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    env:
+      OCI_CLI_USER: ${{ secrets.OCI_CLI_USER }}
+      OCI_CLI_TENANCY: ${{ secrets.OCI_CLI_TENANCY }}
+      OCI_CLI_FINGERPRINT: ${{ secrets.OCI_CLI_FINGERPRINT }}
+      OCI_CLI_KEY_CONTENT: ${{ secrets.OCI_CLI_KEY_CONTENT }}
+      OCI_CLI_REGION: ${{ secrets.OCI_CLI_REGION }}
+
+      COMPARTMENT_ID: ${{ secrets.OCI_COMPARTMENT_OCID }}
+      SUBNET_ID: ${{ secrets.OCI_SUBNET_OCID }}
+      AD: ${{ secrets.OCI_AVAILABILITY_DOMAIN }}
+      IMAGE_ID: ocid1.image.oc1.ap-mumbai-1.aaaaaaaa3ijqnvqa6hwhl3xu2eiqydzx77ukfu6rafhxfhqhemwugvci6gxa   # replace
+      OCI_SSH_PUBLIC_KEY: ${{ secrets.OCI_SSH_PUBLIC_KEY }}
+
+    steps:
+      - name: Install OCI CLI
+        uses: oracle-actions/run-oci-cli-command@v1.3.2
+        with:
+          command: --version
+          silent: true
+
+      - name: Persistent instance creation (every 5 seconds)
+        run: |
+          echo "Starting persistent A1 Flex creation loop with SSH key injected"
+
+          while true; do
+            echo "Attempt at $(date -u)"
+
+            oci compute instance launch \
+              --compartment-id "$COMPARTMENT_ID" \
+              --availability-domain "$AD" \
+              --shape VM.Standard.A1.Flex \
+              --shape-config '{"ocpus":4,"memoryInGBs":24}' \
+              --subnet-id "$SUBNET_ID" \
+              --display-name "gh-a1-flex" \
+              --image-id "$IMAGE_ID" \
+              --boot-volume-size-in-gbs 200 \
+              --boot-volume-vpus-per-gb 120 \
+              --assign-public-ip true \
+              --metadata "{\"ssh_authorized_keys\":\"$OCI_SSH_PUBLIC_KEY\"}" \
+              --wait-for-state RUNNING \
+              && echo "INSTANCE CREATED SUCCESSFULLY" && exit 0
+
+            sleep 5
+          done
+
+      - name: Re-dispatch workflow after timeout
+        if: failure()
+        run: |
+          echo "6h limit reached. Re-dispatching."
+
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.GH_PAT }}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/oci-a1-flex-persistent.yml/dispatches \
+            -d '{"ref":"main"}'
