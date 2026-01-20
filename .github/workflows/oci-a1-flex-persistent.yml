@@ -42,8 +42,6 @@ jobs:
               --shape-config '{"ocpus":4,"memoryInGBs":24}' \
               --subnet-id "$SUBNET_ID" \
               --display-name "gh-a1-flex" \
-              --image-id "$IMAGE_ID" \
-              --boot-volume-size-in-gbs 200 \
               --assign-public-ip true \
               --metadata "{\"ssh_authorized_keys\":\"$OCI_SSH_PUBLIC_KEY\"}" \
               --wait-for-state RUNNING \
