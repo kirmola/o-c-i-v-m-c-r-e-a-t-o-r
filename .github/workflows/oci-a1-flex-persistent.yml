@@ -1,6 +1,8 @@
 name: OCI A1 Flex Persistent Creator (5s retry, SSH enabled)
 
 on:
+  push:
+    branches: ['main']
   workflow_dispatch:
 
 jobs:
@@ -53,7 +55,7 @@ jobs:
               }' \
               && echo "INSTANCE CREATED SUCCESSFULLY" && exit 0
 
-            sleep 5
+            sleep 15
           done
 
       - name: Re-dispatch workflow after timeout
