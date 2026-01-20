@@ -44,10 +44,15 @@ jobs:
               --display-name "gh-a1-flex" \
               --image-id "$IMAGE_ID" \
               --boot-volume-size-in-gbs 200 \
-              --boot-volume-vpus-per-gb 120 \
               --assign-public-ip true \
               --metadata "{\"ssh_authorized_keys\":\"$OCI_SSH_PUBLIC_KEY\"}" \
               --wait-for-state RUNNING \
+              --source-details '{
+                "sourceType": "image",
+                "imageId": "'"$IMAGE_ID"'",
+                "bootVolumeSizeInGBs": 200,
+                "bootVolumeVpusPerGB": 120
+              }' \
               && echo "INSTANCE CREATED SUCCESSFULLY" && exit 0
 
             sleep 5
